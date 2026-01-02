@@ -39,6 +39,13 @@ If you are looking for a production-ready RAG stack, this is not it.
 
 ## System Overview
 
+**Repo Contract:**
+
+- Inputs: one or more PDF files (static corpus)
+- Query input: plain text user question
+- Output: plain text answer + (debug) retrieved chunk IDs + similarity scores
+- Non-goal: citations / sources formatting
+
 **Pipeline:**
 
 ```
@@ -51,24 +58,31 @@ Document → Chunk → Embed → Retrieve → Generate → Answer
 **Document Type**
 
 - Static PDF documents only
+- Text is extracted from PDFs (tables/images are treated as plain text if extractable; otherwise ignored)
 
 **Chunking Strategy**
 
 - Fixed-size sliding window
-- ~500 tokens per chunk
-- ~50 token overlap
+- 500-character chunks (token-aware chunking deferred)
+- 50 character overlap
 - No semantic or structural awareness
+- Maximum number of chunks capped to bound memory usage: 1000
 
 **Retrieval**
 
 - Dense vector similarity search
 - Cosine similarity
 - Top-K = 4 (fixed)
+- Similarity search = top-K nearest neighbors in embedding space
 
 **Generation**
 
 - Single LLM call
 - Answer conditioned only on retrieved chunks
+- If retrieved context is insufficient, model must respond: 
+
+        "I don’t have enough information in the provided documents.
+- Temperature set low (e.g., 0–0.2) to reduce stochastic variation
 
 These values are **intentionally arbitrary** and exist to expose failure modes, not optimize performance.
 
@@ -102,12 +116,19 @@ By keeping this system intentionally simple and imperfect, we gain:
 
 ## How to Run (Minimal)
 
+- add any pdf file in root/data/
+- update the file path of pdf file in app.py
+
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
 
 ---
+
+## Result
+
+With non-semantic embeddings, retrieval selects chunks based on character-level similarity rather than meaning. As a result, retrieved evidence often lacks the information required to answer high-level questions (e.g., document objectives). Under a strict evidence-only generation policy, the LLM consistently refuses to answer. This demonstrates that RAG correctness is bounded by retrieval quality, not model capability.
 
 ## What to Explore Next
 
