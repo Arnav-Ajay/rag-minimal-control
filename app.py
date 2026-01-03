@@ -1,27 +1,40 @@
 # app.py → glue + debug prints
 
+import os
 from llm import get_llm_response
 from ingest import load_pdf, chunk_texts
 from retriever import create_vector_store, retrieve_similar_documents
 
 def main():
 
-    query = "What is mentioned in this document?"
+    query = "What changes are made in Annexure-E?"
 
-    pdf_path = r"data\ANNEXURE-E.pdf"
-    text = load_pdf(pdf_path)
+    all_chunks = {}
+    global_chunk_id = 0
 
-    chunks = chunk_texts(text)
-    print(f"Total chunks created: {len(chunks)}")
-    if len(chunks) == 1000:
-        print("⚠️ Chunk limit reached. Document truncated for control-system execution.")
+    pdf_path = r"data/"
 
+    for filename in os.listdir(pdf_path):
+        if filename.endswith(".pdf"):
+            pdf_text = load_pdf(os.path.join(pdf_path, filename))
+            chunks = chunk_texts(pdf_text)
 
-    vector_store = create_vector_store(chunks)
+            for _, chunk_text in chunks.items():
+                # Preserve document boundary via prefix (no new data structures)
+                tagged_chunk = f"[SOURCE: {filename}]\n{chunk_text}"
+                all_chunks[global_chunk_id] = tagged_chunk
+                global_chunk_id += 1
+
+                if global_chunk_id >= 1000:
+                    print("⚠️ Chunk limit reached. Document truncated for control-system execution.")
+                    break
+
+    print(f"Total chunks created: {len(all_chunks)}")
+
+    vector_store = create_vector_store(all_chunks)
 
     top_k = 4
     results = retrieve_similar_documents(vector_store, query, top_k=top_k)
-    print(f"Top {top_k} similar documents retrieved.")
 
     context = ""
     for chunk_id, chunk_text, score in results:
@@ -43,9 +56,9 @@ Question:
 """
 
     response = get_llm_response(prompt)
-
     print("LLM Response:")
     print(response)
+
 
 if __name__ == "__main__":
     main()
