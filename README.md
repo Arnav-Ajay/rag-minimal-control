@@ -114,6 +114,22 @@ By keeping this system intentionally simple and imperfect, we gain:
 
 ---
 
+## Important Clarification
+
+This repository is intentionally *not* designed to answer questions correctly.
+
+Its purpose is to establish a **retrieval-conditioned control baseline**, where:
+
+- Retrieval quality is deliberately poor
+- Embeddings are non-semantic by design
+- Refusal to answer is the *expected correct behavior*
+
+This ensures that future improvements can be causally attributed
+to changes in retrieval, representation, or evaluation — not
+to accidental system behavior.
+
+---
+
 ## How to Run (Minimal)
 
 - create a folder `data/` and add pdf files in it. (just 1 is fine)

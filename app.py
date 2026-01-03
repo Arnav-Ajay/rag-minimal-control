@@ -4,15 +4,19 @@ import os
 from llm import get_llm_response
 from ingest import load_pdf, chunk_texts
 from retriever import create_vector_store, retrieve_similar_documents
+import argparse
 
 def main():
 
-    query = "What is the architecture described in the documents?"
+    parser = argparse.ArgumentParser(description="RAG Application")
+    parser.add_argument("--pdf-dir", default="data/", help="Directory containing PDF files")
+    parser.add_argument("--query", type=str, default="What is the architecture described in the documents?", help="Query to ask the RAG system")
+    args = parser.parse_args()
 
     all_chunks = {}
     global_chunk_id = 0
 
-    pdf_path = r"data/"
+    pdf_path = args.pdf_dir
 
     for filename in os.listdir(pdf_path):
         if filename.endswith(".pdf"):
@@ -36,6 +40,7 @@ def main():
     vector_store = create_vector_store(all_chunks)
 
     top_k = 4
+    query = args.query
     results = retrieve_similar_documents(vector_store, query, top_k=top_k)
     print(f"Top {top_k} similar chunks retrieved:")
     context = ""
