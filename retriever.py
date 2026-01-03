@@ -14,10 +14,13 @@ def get_embedding(chunk):
 # Function to create a vector store from document chunks
 def create_vector_store(chunks):
     vector_store = []
-    for id, chunk in chunks.items():
-        embedding = get_embedding(chunk)
-        vector_store.append((id, chunk, embedding))
+    for id, chunk_info in chunks.items():
+        chunk_text = chunk_info["text"]
+        doc_id = chunk_info["doc_id"]
+        embedding = get_embedding(chunk_text)
+        vector_store.append((id, doc_id, chunk_text, embedding))
     return vector_store
+
 
 # Function to compute cosine similarity between two vectors
 def cosine_similarity(vec1, vec2):
@@ -33,11 +36,11 @@ def retrieve_similar_documents(vector_store, query, top_k=4):
     query_embedding = get_embedding(query)
     similarities = []
 
-    for chunk_id, chunk_text, embedding in vector_store:
+    for chunk_id, doc_id, chunk_text, embedding in vector_store:
         sim = cosine_similarity(query_embedding, embedding)
-        similarities.append((chunk_id, chunk_text, sim))
+        similarities.append((chunk_id, doc_id, chunk_text, sim))
 
-    similarities.sort(key=lambda x: x[2], reverse=True)
+    similarities.sort(key=lambda x: x[3], reverse=True)
 
     return similarities[:top_k]
 

@@ -1,4 +1,4 @@
-# ingest.py → PDF → chunks
+# # ingest.py → PDF → chunks
 
 import pdfplumber
 import os

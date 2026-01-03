@@ -134,12 +134,32 @@ python app.py
 
 With non-semantic embeddings, retrieval selects chunks based on character-level similarity rather than meaning. As a result, retrieved evidence often lacks the information required to answer high-level questions (e.g., document objectives). Under a strict evidence-only generation policy, the LLM consistently refuses to answer. This demonstrates that RAG correctness is bounded by retrieval quality, not model capability.
 
-## What to Explore Next
+## Ingestion Correction (Post-Hoc)
 
-- Hybrid retrieval (dense + sparse)
-- Retrieval reranking
-- Chunking strategies
-- Faithfulness and context recall metrics
-- Agent-driven retrieval
+An early implementation of this repository exhibited character-level text
+fragmentation during PDF extraction due to the underlying extraction backend.
 
-Each of these will be built **only after this baseline is understood**.
+This was corrected by:
+- Switching to a more robust PDF text extraction backend
+- Applying minimal whitespace normalization
+- Preserving all downstream system parameters unchanged
+
+No changes were made to:
+- Chunking strategy
+- Embedding logic
+- Retrieval method
+- Top-K selection
+- Generation or refusal behavior
+
+This correction restores corpus text integrity while preserving the original
+control-system behavior and conclusions.
+
+
+## Related Repositories
+
+This repository is part of a structured, multi-week exploration of RAG systems.
+
+- **Retrieval Observability:**  
+  [`rag-retrieval-eval`](https://github.com/Arnav-Ajay/rag-retrieval-eval)  
+  Adds retrieval observability and human-labeled evaluation to diagnose *why*
+  this control system refuses to answer.
