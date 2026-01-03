@@ -116,9 +116,14 @@ By keeping this system intentionally simple and imperfect, we gain:
 
 ## How to Run (Minimal)
 
-- add any pdf file in root/data/
-- update the file path of pdf file in app.py
+- create a folder `data/` and add pdf files in it. (just 1 is fine)
+- or update the file path of pdf file in app.py
+- create a .env file in root dir and add you OpenAI API key ket as:
+```
+OPENAI_API_KEY=<your-api-key>
 
+```
+- simply run:
 ```bash
 pip install -r requirements.txt
 python app.py

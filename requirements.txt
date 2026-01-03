@@ -1,4 +1,4 @@
-PyPDF2
+pdfplumber
 numpy
 openai
 python-dotenv
