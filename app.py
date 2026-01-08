@@ -10,7 +10,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="RAG Application")
     parser.add_argument("--pdf-dir", default="data/", help="Directory containing PDF files")
-    parser.add_argument("--query", type=str, default="What is the architecture described in the documents?", help="Query to ask the RAG system")
+    parser.add_argument("--query", type=str, default="What is the attention mechanism?", help="Query to ask the RAG system")
     args = parser.parse_args()
 
     all_chunks = {}

@@ -16,9 +16,9 @@ This system answers user questions **using only information retrieved from a sta
 
 It demonstrates:
 
-- How retrieval conditions generation
-- How answer quality depends more on retrieval than model size
-- Why “adding RAG” does not guarantee correctness
+* How retrieval conditions generation
+* How answer quality depends more on retrieval than model size
+* Why “adding RAG” does not guarantee correctness
 
 ---
 
@@ -26,12 +26,12 @@ It demonstrates:
 
 This implementation deliberately avoids:
 
-- Agent-based decision making
-- Tool calling or external databases
-- Retrieval reranking
-- Automated evaluation
-- Long-term or conversational memory
-- Hallucination prevention guarantees
+* Agent-based decision making
+* Tool calling or external databases
+* Retrieval reranking
+* Automated evaluation
+* Long-term or conversational memory
+* Hallucination prevention guarantees
 
 If you are looking for a production-ready RAG stack, this is not it.
 
@@ -39,52 +39,90 @@ If you are looking for a production-ready RAG stack, this is not it.
 
 ## System Overview
 
-**Repo Contract:**
+### Repo Contract
 
-- Inputs: one or more PDF files (static corpus)
-- Query input: plain text user question
-- Output: plain text answer + (debug) retrieved chunk IDs + similarity scores
-- Non-goal: citations / sources formatting
+* **Inputs:** One or more **publicly available PDF documents** (static corpus)
+* **Corpus location:** `./data/`
+* **Query input:** Plain text user question
+* **Output:**
 
-**Pipeline:**
+  * Plain text answer
+  * (Debug) retrieved chunk IDs
+  * Similarity scores
+* **Non-goal:** Citations or formatted source attribution
+
+> ⚠️ **Important:**
+> The PDFs included in `data/` are **canonical research papers** chosen to make this repository fully reproducible and inspectable by anyone.
+
+---
+
+### Pipeline
 
 ```
 Document → Chunk → Embed → Retrieve → Generate → Answer
-
 ```
 
-**Key design choices:**
+---
 
-**Document Type**
+## Key Design Choices
 
-- Static PDF documents only
-- Text is extracted from PDFs (tables/images are treated as plain text if extractable; otherwise ignored)
+### Document Type
 
-**Chunking Strategy**
+* Static PDF documents only
+* Text is extracted directly from PDFs
+* Tables/images are treated as plain text *only if extractable*
+* Non-extractable elements are ignored
 
-- Fixed-size sliding window
-- 500-character chunks (token-aware chunking deferred)
-- 50 character overlap
-- No semantic or structural awareness
-- Maximum number of chunks capped to bound memory usage: 1000
+**Included example corpus (in `/data`):**
 
-**Retrieval**
+* *Attention Is All You Need*
+* *Large Language Models: A Survey*
+* *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks*
 
-- Dense vector similarity search
-- Cosine similarity
-- Top-K = 4 (fixed)
-- Similarity search = top-K nearest neighbors in embedding space
+These documents were chosen because they:
 
-**Generation**
+* Are publicly available
+* Contain dense technical structure
+* Expose retrieval failures clearly under naive chunking and embedding
 
-- Single LLM call
-- Answer conditioned only on retrieved chunks
-- If retrieved context is insufficient, model must respond: 
+---
 
-        "I don’t have enough information in the provided documents.
-- Temperature set low (e.g., 0–0.2) to reduce stochastic variation
+### Chunking Strategy
 
-These values are **intentionally arbitrary** and exist to expose failure modes, not optimize performance.
+* Fixed-size sliding window
+* 500-character chunks
+* 50-character overlap
+* No semantic or structural awareness
+* No section boundary detection
+* Maximum chunks capped at **1000** to bound memory usage
+
+> This is intentionally primitive to surface retrieval pathologies.
+
+---
+
+### Retrieval
+
+* Dense vector similarity search
+* Cosine similarity
+* **Top-K = 4 (fixed)**
+* No reranking
+* No hybrid retrieval
+
+---
+
+### Generation
+
+* Single LLM call
+* Answer conditioned **only** on retrieved chunks
+* If retrieved context is insufficient, the model must respond:
+
+```
+"I don’t have enough information in the provided documents."
+```
+
+* Temperature set low (≈ 0–0.2) to minimize stochastic variation
+
+All parameters are **intentionally arbitrary** and exist to expose failure modes — not optimize performance.
 
 ---
 
@@ -98,7 +136,7 @@ This system is expected to fail when:
 4. The user query is underspecified or ambiguous
 5. The model answers confidently with insufficient evidence
 
-These failures are not bugs — they are the point.
+These failures are not bugs — **they are the point**.
 
 ---
 
@@ -108,37 +146,40 @@ Every future repository in this series builds *on top of* this baseline.
 
 By keeping this system intentionally simple and imperfect, we gain:
 
-- A reference point for measuring improvement
-- A clear understanding of where complexity actually helps
-- A shared language for discussing RAG failures
+* A reference point for measuring improvement
+* A clear understanding of where complexity actually helps
+* A shared language for discussing RAG failures
 
 ---
 
 ## Important Clarification
 
-This repository is intentionally *not* designed to answer questions correctly.
+This repository is intentionally **not designed to answer questions correctly**.
 
 Its purpose is to establish a **retrieval-conditioned control baseline**, where:
 
-- Retrieval quality is deliberately poor
-- Embeddings are non-semantic by design
-- Refusal to answer is the *expected correct behavior*
+* Retrieval quality is deliberately poor
+* Chunking ignores document structure
+* Embeddings are not optimized for semantic coverage
+* Refusal to answer is the *expected correct behavior*
 
-This ensures that future improvements can be causally attributed
-to changes in retrieval, representation, or evaluation — not
-to accidental system behavior.
+This ensures that future improvements can be **causally attributed** to changes in retrieval, representation, or evaluation — not accidental system behavior.
 
 ---
 
 ## How to Run (Minimal)
 
-- create a folder `data/` and add pdf files in it. (just 1 is fine)
-- create a .env file in root dir and add you OpenAI API key ket as:
-```
-OPENAI_API_KEY=<your-api-key>
+1. Ensure PDFs exist in the `data/` directory
+   (Sample research papers are already included.)
 
+2. Create a `.env` file in the repository root:
+
+```bash
+OPENAI_API_KEY=<your-api-key>
 ```
-- simply run:
+
+3. Install dependencies and run:
+
 ```bash
 pip install -r requirements.txt
 python app.py
@@ -148,34 +189,43 @@ python app.py
 
 ## Result
 
-With non-semantic embeddings, retrieval selects chunks based on character-level similarity rather than meaning. As a result, retrieved evidence often lacks the information required to answer high-level questions (e.g., document objectives). Under a strict evidence-only generation policy, the LLM consistently refuses to answer. This demonstrates that RAG correctness is bounded by retrieval quality, not model capability.
+With naive chunking and dense similarity alone, retrieval often surfaces text that is lexically similar but semantically insufficient.
+
+Under a strict **evidence-only generation policy**, the LLM frequently refuses to answer — even when the document contains the correct information elsewhere.
+
+This demonstrates a foundational truth:
+
+> **RAG correctness is bounded by retrieval quality, not model capability.**
+
+---
 
 ## Ingestion Correction (Post-Hoc)
 
-An early implementation of this repository exhibited character-level text
-fragmentation during PDF extraction due to the underlying extraction backend.
+An early implementation exhibited character-level text fragmentation during PDF extraction due to the underlying extraction backend.
 
 This was corrected by:
-- Switching to a more robust PDF text extraction backend
-- Applying minimal whitespace normalization
-- Preserving all downstream system parameters unchanged
+
+* Switching to a more robust PDF text extraction backend
+* Applying minimal whitespace normalization
 
 No changes were made to:
-- Chunking strategy
-- Embedding logic
-- Retrieval method
-- Top-K selection
-- Generation or refusal behavior
 
-This correction restores corpus text integrity while preserving the original
-control-system behavior and conclusions.
+* Chunking strategy
+* Embedding logic
+* Retrieval method
+* Top-K selection
+* Generation or refusal behavior
 
+This correction restores corpus text integrity while **preserving the original control-system behavior and conclusions**.
+
+---
 
 ## Related Repositories
 
 This repository is part of a structured, multi-week exploration of RAG systems.
 
-- **Retrieval Observability:**  
-  [`rag-retrieval-eval`](https://github.com/Arnav-Ajay/rag-retrieval-eval)  
-  Adds retrieval observability and human-labeled evaluation to diagnose *why*
-  this control system refuses to answer.
+* **Retrieval Observability:**
+  [`rag-retrieval-eval`](https://github.com/Arnav-Ajay/rag-retrieval-eval)
+  Adds retrieval observability and human-labeled evaluation to diagnose *why* this control system fails.
+
+---
